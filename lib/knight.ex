@@ -1,6 +1,9 @@
 defmodule KnightsTour do
+"""
+Find a sequence of moves for a knight to hit every square exactly once on a N by M board.
+"""
 	defmodule Model do
-		defstruct count: 0, visited: nil, pos: nil, rows: nil, cols: nil
+		defstruct moves: 0, visited: nil, pos: nil, rows: nil, cols: nil
 	end
 
 	defimpl String.Chars, for: Model do
@@ -8,29 +11,30 @@ defmodule KnightsTour do
 	end
 	
 	def init(rows, cols) do
-		%Model{rows: rows, cols: cols, visited: :array.new(rows*cols, default: false, fixed: true)}
+		%Model{rows: rows, cols: cols, 
+					 visited: :array.new(rows*cols, default: false, fixed: true)}
 	end
 
-	defp visit_count(model) do
-		model.count
+	defp visit_moves(model) do
+		model.moves
 	end
 
 	defp visit(model, {i,j} = pos) do
  		idx = (i-1) * model.cols + (j-1)
 		%{model |
 			visited: :array.set(idx, true, model.visited),
-			count: model.count + 1,
+			moves: model.moves + 1,
 			pos: pos}
 	end
 
-	defp visited?(model, {i,j} = pos) do
+	defp visited?(model, {i,j}) do
  		idx = (i-1) * model.cols + (j-1)
 		:array.get(idx, model.visited)
 	end
 																							 
 	def next(path, model) do
 		cond do
-			visit_count(model) == model.rows * model.cols ->
+			visit_moves(model) == model.rows * model.cols ->
 				{:stop, "got it"}
 
 			model.pos == nil ->
@@ -43,13 +47,11 @@ defmodule KnightsTour do
 				
 		  {i0,j0} = model.pos ->
 				for transpose <- [true, false], di <- [-2, 2], dj <- [-1, 1] do
-					if transpose do
-						{di, dj} = {dj, di}
-					end
+					{di, dj} = (transpose && {dj, di} || {di, dj})
 					pos = {i, j} = {i0+di, j0+dj}
 					if i>0 and i<=model.rows and j>0 and j<=model.cols and not visited?(model, pos) do
 						# debug
-						#IO.puts("move delta=#{di},#{dj} from #{i0},#{j0} to #{i},#{j} seen #{visit_count(model)}")
+						#IO.puts("move delta=#{di},#{dj} from #{i0},#{j0} to #{i},#{j} seen #{visit_moves(model)}")
 						
 						:ok = Bfs.next(path, visit(model, pos), "move to #{i},#{j}")
 					end
@@ -58,10 +60,10 @@ defmodule KnightsTour do
 		end
 	end
 
-	def run(rows \\ 4, cols \\ 5) do
+	def start(rows \\ 4, cols \\ nil, opts \\ []) do
 		if cols == nil do
 			cols = rows
 		end
-		Bfs.run(init(rows, cols), &next/2)
+		Bfs.start(init(rows, cols), &next/2, opts)
 	end
 end
